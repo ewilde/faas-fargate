@@ -1,7 +1,7 @@
 <p align="center">
   <img alt="Mascot" src="docs/mascot.png" />
   <h3 align="center">faas-ecs</h3>
-  <p align="center">Run OpenFaaS on AWS without the fuss.</p>
+  <p align="center">Run OpenFaaS on AWS serverless with Fargate.</p>
   <p align="center">
     <a href="https://github.com/goreleaser/goreleaser/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/ewilde/faas-ecs.svg?style=flat-square"></a>
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
