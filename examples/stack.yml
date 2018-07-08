@@ -1,0 +1,9 @@
+provider:
+  name: faas
+  gateway: http://127.0.0.1:8080
+
+functions:
+  hellogoworld2:
+    lang: go
+    handler: ./hellogoworld2
+    image: ewilde/hellogoworld2

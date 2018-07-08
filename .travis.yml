@@ -1,0 +1,34 @@
+sudo: required
+
+language: go
+
+go:
+  - 1.10.x
+  
+install:
+  - echo "Please don't go get"
+
+services:
+  - docker
+
+before_script:
+- bash scripts/set_travis_experimental_mode.sh
+- curl -sSL get.docker.com | sudo -E sh
+
+after_success:
+- if [ ! -z "$TRAVIS_TAG" ] ; then
+  docker tag ewilde/faas-ecs:latest ewilde/faas-ecs:$TRAVIS_TAG;
+  echo $DOCKER_PASSWORD | docker login -u=$DOCKER_USERNAME --password-stdin;
+  docker push $DOCKER_NS/faas-ecs:$TRAVIS_TAG;
+  docker push $DOCKER_NS/faas-ecs:latest;
+  fi
+script:
+  - make build
+
+deploy:
+- provider: script
+  skip_cleanup: true
+  script: curl -sL https://git.io/goreleaser | bash
+  on:
+    tags: true
+    condition: $TRAVIS_OS_NAME = linux

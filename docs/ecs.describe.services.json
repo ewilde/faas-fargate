@@ -1,0 +1,73 @@
+{
+  "services": [
+    {
+      "serviceArn": "arn:aws:ecs:eu-west-1:288840537196:service/http-echo",
+      "serviceName": "http-echo",
+      "clusterArn": "arn:aws:ecs:eu-west-1:288840537196:cluster/openfaas",
+      "loadBalancers": [],
+      "status": "ACTIVE",
+      "desiredCount": 1,
+      "runningCount": 0,
+      "pendingCount": 1,
+      "launchType": "FARGATE",
+      "platformVersion": "LATEST",
+      "taskDefinition": "arn:aws:ecs:eu-west-1:288840537196:task-definition/http-echo-far:2",
+      "deploymentConfiguration": {
+        "maximumPercent": 200,
+        "minimumHealthyPercent": 50
+      },
+      "deployments": [
+        {
+          "id": "ecs-svc/9223370510706455604",
+          "status": "PRIMARY",
+          "taskDefinition": "arn:aws:ecs:eu-west-1:288840537196:task-definition/http-echo-far:2",
+          "desiredCount": 1,
+          "pendingCount": 1,
+          "runningCount": 0,
+          "createdAt": 1526148320.203,
+          "updatedAt": 1526148320.203,
+          "launchType": "FARGATE",
+          "platformVersion": "1.1.0",
+          "networkConfiguration": {
+            "awsvpcConfiguration": {
+              "subnets": [
+                "subnet-9c3458ea",
+                "subnet-4c388b14",
+                "subnet-06ec9d62"
+              ],
+              "securityGroups": [
+                "sg-99e956e4"
+              ],
+              "assignPublicIp": "ENABLED"
+            }
+          }
+        }
+      ],
+      "roleArn": "arn:aws:iam::288840537196:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+      "events": [
+        {
+          "id": "9e029f86-187a-47ad-bf3c-208eded3533f",
+          "createdAt": 1526157847.75,
+          "message": "(service http-echo) has started 1 tasks: (task fe62849a-40af-40ab-93df-bbd054d3cf4b)."
+        }
+      ],
+      "createdAt": 1526148060.349,
+      "placementConstraints": [],
+      "placementStrategy": [],
+      "networkConfiguration": {
+        "awsvpcConfiguration": {
+          "subnets": [
+            "subnet-9c3458ea",
+            "subnet-4c388b14",
+            "subnet-06ec9d62"
+          ],
+          "securityGroups": [
+            "sg-99e956e4"
+          ],
+          "assignPublicIp": "ENABLED"
+        }
+      }
+    }
+  ],
+  "failures": []
+}

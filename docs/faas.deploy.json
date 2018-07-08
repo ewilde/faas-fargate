@@ -1,0 +1,12 @@
+{
+    "service": "hellogoworld",
+    "image": "ewilde/hellogoworld",
+    "network": "",
+    "envProcess": "./handler",
+    "envVars": {},
+    "constraints": null,
+    "secrets": [],
+    "labels": {},
+    "limits": null,
+    "requests": null
+}
