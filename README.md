@@ -5,7 +5,7 @@
   <p align="center">
     <a href="https://github.com/goreleaser/goreleaser/releases/latest"><img alt="Release" src="https://img.shields.io/github/release/ewilde/faas-ecs.svg?style=flat-square"></a>
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
-    <a href="https://travis-ci.org/ewilde/faas-ecs"><img alt="Travis" src="https://img.shields.io/travis/ewilde/faas-ecs/master.svg?style=flat-square"></a>
+    <a href="https://travis-ci.org/ewilde/faas-fargate"><img alt="Travis" src="https://img.shields.io/travis/ewilde/faas-fargate/master.svg?style=flat-square"></a>
     <a href="https://github.com/goreleaser"><img alt="Powered By: GoReleaser" src="https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=flat-square"></a>   
   </p>
 </p>
