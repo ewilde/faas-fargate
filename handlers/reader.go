@@ -9,7 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	awsutil "github.com/ewilde/faas-ecs/aws"
+	awsutil "github.com/ewilde/faas-fargate/aws"
 	"github.com/openfaas/faas/gateway/requests"
 	log "github.com/sirupsen/logrus"
 )

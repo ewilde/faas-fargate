@@ -5,14 +5,14 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	awsutil "github.com/ewilde/faas-ecs/aws"
-	"github.com/ewilde/faas-ecs/types"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/servicediscovery"
+	awsutil "github.com/ewilde/faas-fargate/aws"
+	"github.com/ewilde/faas-fargate/types"
 	"github.com/openfaas/faas/gateway/requests"
 	log "github.com/sirupsen/logrus"
-	"github.com/aws/aws-sdk-go/service/servicediscovery"
 )
 
 // MakeUpdateHandler update specified function

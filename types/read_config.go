@@ -1,5 +1,7 @@
 // Copyright (c) Edward Wilde 2018. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
+
+// Package types contains definitions for public types
 package types
 
 import (
@@ -79,19 +81,19 @@ func (ReadConfig) Read(hasEnv HasEnv) BootstrapConfig {
 	cfg.AssignPublicIP = parseString(hasEnv.Getenv("assign_public_ip"), "DISABLED")
 	cfg.Port = parseIntValue(hasEnv.Getenv("port"), defaultTCPPort)
 	cfg.SubnetIDs = parseString(hasEnv.Getenv("subnet_ids"), "")
-	cfg.SecurityGroupId = parseString(hasEnv.Getenv("security_group_id"), "")
+	cfg.SecurityGroupID = parseString(hasEnv.Getenv("security_group_id"), "")
 
 	return cfg
 }
 
 // BootstrapConfig for the process.
 type BootstrapConfig struct {
-	AssignPublicIP				 string
+	AssignPublicIP               string
 	EnableFunctionReadinessProbe bool
 	ImagePullPolicy              string
 	Port                         int
 	ReadTimeout                  time.Duration
-	SubnetIDs		  		     string
-	SecurityGroupId              string
+	SubnetIDs                    string
+	SecurityGroupID              string
 	WriteTimeout                 time.Duration
 }

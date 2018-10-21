@@ -1,5 +1,5 @@
 builds:
-  - binary: faas-ecs
+  - binary: faas-fargate
     goos:
       - linux
     goarch:

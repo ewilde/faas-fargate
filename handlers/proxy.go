@@ -13,15 +13,16 @@ import (
 
 	"errors"
 
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	awsutil "github.com/ewilde/faas-ecs/aws"
+	awsutil "github.com/ewilde/faas-fargate/aws"
 	"github.com/gorilla/mux"
 	"github.com/openfaas/faas/gateway/requests"
 	log "github.com/sirupsen/logrus"
-	"fmt"
-		)
+)
 
 // MakeProxy creates a proxy for HTTP web requests which can be routed to a function.
 func MakeProxy(functionNamespace string, timeout time.Duration, ecsClient *ecs.ECS, ec2Client *ec2.EC2) http.HandlerFunc {
@@ -154,13 +155,13 @@ func hostNameFromENI(ecsClient *ecs.ECS, ec2Client *ec2.EC2, serviceName string)
 	}
 
 	details := tasks.Tasks[0].Attachments[0].Details
-	networkId, ok := awsutil.KeyValuePairGetValue("networkInterfaceId", details)
+	networkID, ok := awsutil.KeyValuePairGetValue("networkInterfaceId", details)
 	if !ok {
 		return "", errors.New("could not find a running task with an attached network interface")
 	}
 
 	network, err := ec2Client.DescribeNetworkInterfaces(
-		&ec2.DescribeNetworkInterfacesInput{NetworkInterfaceIds: []*string{networkId}})
+		&ec2.DescribeNetworkInterfacesInput{NetworkInterfaceIds: []*string{networkID}})
 	if err != nil {
 		return "", err
 	}
