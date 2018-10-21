@@ -3,32 +3,34 @@ package aws
 import (
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/servicediscovery"
-	log "github.com/sirupsen/logrus"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/satori/go.uuid"
 	"errors"
 	"fmt"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/servicediscovery"
+	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 const namespace = "openfaas.local"
+
 var once = &sync.Once{}
-var namespaceId *string
+var namespaceID *string
 
-func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcId string) (string, error) {
+func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) (string, error) {
 
-	namespaceId, err := ensureDnsNamespaceExists(discovery, vpcId)
+	namespaceID, err := ensureDNSNamespaceExists(discovery, vpcID)
 	if err != nil {
 		log.Errorln("error ensuring dns namespace existing. ", err)
 		return "", err
 	}
 
 	listResults, err := discovery.ListServices(&servicediscovery.ListServicesInput{
-		Filters:[]*servicediscovery.ServiceFilter {
+		Filters: []*servicediscovery.ServiceFilter{
 			{
 				Name: aws.String("NAMESPACE_ID"),
 				Values: []*string{
-					namespaceId,
+					namespaceID,
 				},
 			},
 		},
@@ -48,21 +50,21 @@ func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscover
 	}
 
 	if serviceArn == "" {
-		requestId := uuid.NewV4()
+		requestID := uuid.NewV4()
 		createResult, err := discovery.CreateService(&servicediscovery.CreateServiceInput{
-			Name: aws.String(serviceName),
-			CreatorRequestId: aws.String(requestId.String()),
-			Description: aws.String(fmt.Sprintf("Openfaas auto-naming service for %s", serviceName)),
-			DnsConfig: &servicediscovery.DnsConfig {
-				NamespaceId: namespaceId,
+			Name:             aws.String(serviceName),
+			CreatorRequestId: aws.String(requestID.String()),
+			Description:      aws.String(fmt.Sprintf("Openfaas auto-naming service for %s", serviceName)),
+			DnsConfig: &servicediscovery.DnsConfig{
+				NamespaceId: namespaceID,
 				DnsRecords: []*servicediscovery.DnsRecord{
 					{
 						Type: aws.String("A"),
-						TTL: aws.Int64(10),
+						TTL:  aws.Int64(10),
 					},
 				},
 			},
-			HealthCheckCustomConfig: &servicediscovery.HealthCheckCustomConfig {
+			HealthCheckCustomConfig: &servicediscovery.HealthCheckCustomConfig{
 				FailureThreshold: aws.Int64(1),
 			},
 		})
@@ -78,7 +80,7 @@ func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscover
 	return serviceArn, nil
 }
 
-func ensureDnsNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcId string)  (id *string, err error)  {
+func ensureDNSNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcID string) (id *string, err error) {
 	once.Do(func() {
 		var found bool
 
@@ -89,12 +91,12 @@ func ensureDnsNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcI
 		}
 
 		if !found {
-			requestId := uuid.NewV4()
-			_ , err = discovery.CreatePrivateDnsNamespace(&servicediscovery.CreatePrivateDnsNamespaceInput{
-				Name: aws.String(namespace),
-				CreatorRequestId: aws.String(requestId.String()),
-				Description: aws.String("Openfaas private DNS namespace"),
-				Vpc: aws.String(vpcId),
+			requestID := uuid.NewV4()
+			_, err = discovery.CreatePrivateDnsNamespace(&servicediscovery.CreatePrivateDnsNamespaceInput{
+				Name:             aws.String(namespace),
+				CreatorRequestId: aws.String(requestID.String()),
+				Description:      aws.String("Openfaas private DNS namespace"),
+				Vpc:              aws.String(vpcID),
 			})
 
 			if err != nil {
@@ -114,10 +116,10 @@ func ensureDnsNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcI
 			}
 		}
 
-		namespaceId = id
+		namespaceID = id
 	})
 
-	return namespaceId, err
+	return namespaceID, err
 }
 
 func findNamespace(discovery *servicediscovery.ServiceDiscovery) (*string, bool, error) {
@@ -130,7 +132,7 @@ func findNamespace(discovery *servicediscovery.ServiceDiscovery) (*string, bool,
 
 	found := false
 	var id *string
-	for _, item := range listResult.Namespaces  {
+	for _, item := range listResult.Namespaces {
 		if aws.StringValue(item.Name) == namespace {
 			id = item.Id
 			found = true

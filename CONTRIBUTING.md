@@ -8,16 +8,16 @@ Guidelines for contributing.
 
 We have a number of areas where we can accept contributions:
 
-* Work on [missing features and bugs](https://github.com/ewilde/faas-ecs/issues)
+* Work on [missing features and bugs](https://github.com/ewilde/faas-fargate/issues)
 
 
 ### I've found a typo
 
-* A Pull Request is not necessary. Raise an [Issue](https://github.com/ewilde/faas-ecs/issues) and we'll fix it as soon as we can. 
+* A Pull Request is not necessary. Raise an [Issue](https://github.com/ewilde/faas-fargate/issues) and we'll fix it as soon as we can. 
 
 ### I have a (great) idea
 
-The maintainers would like to make faas-ecs the best it can be and welcome new contributions that align with the project's goals.
+The maintainers would like to make faas-fargate the best it can be and welcome new contributions that align with the project's goals.
 Our time is limited so we'd like to make sure we agree on the proposed work before you spend time doing it.
 Saying "no" is hard which is why we'd rather say "yes" ahead of time. You need to raise a proposal.
 
@@ -65,7 +65,7 @@ Here's an example:
 ```
 Add secrets to provider
 
-We need to have the ability to pass secrets to faas-ecs securely.
+We need to have the ability to pass secrets to faas-fargate securely.
 This commits adds secrets support using  AWS Secrets Manager API.
 
 Resolves #1

@@ -6,6 +6,7 @@ import (
 	"github.com/openfaas/faas/gateway/requests"
 )
 
+// CreateTaskRevision create a new task revision
 func CreateTaskRevision(client *ecs.ECS, request requests.CreateFunctionRequest) (*ecs.RegisterTaskDefinitionOutput, error) {
 	registration, err := client.RegisterTaskDefinition(&ecs.RegisterTaskDefinitionInput{
 		Family: aws.String(ServiceNameFromFunctionName(request.Service)),
@@ -19,7 +20,6 @@ func CreateTaskRevision(client *ecs.ECS, request requests.CreateFunctionRequest)
 				Image: aws.String(request.Image),
 			},
 		},
-
 	})
 
 	if err != nil {

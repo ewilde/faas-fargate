@@ -14,7 +14,7 @@ import (
 	"github.com/openfaas/faas/gateway/requests"
 
 	"github.com/aws/aws-sdk-go/aws"
-	awsutil "github.com/ewilde/faas-ecs/aws"
+	awsutil "github.com/ewilde/faas-fargate/aws"
 	log "github.com/sirupsen/logrus"
 )
 

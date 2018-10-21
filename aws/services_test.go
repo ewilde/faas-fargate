@@ -2,6 +2,7 @@ package aws
 
 import (
 	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 )
 

@@ -15,7 +15,7 @@ local-build: goimportscheck vet
 	@echo "Build succeeded"
 
 build:
-	docker build -t ewilde/faas-ecs:$(TAG) . --squash=${SQUASH}
+	docker build -t ewilde/faas-fargate:$(TAG) . --squash=${SQUASH}
 
 release:
 	go get github.com/goreleaser/goreleaser; \
@@ -40,8 +40,8 @@ vet:
 	fi
 
 lint:
-	@echo "go lint ."
-	@golint $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
+	@echo "golint ."
+	@golint -set_exit_status $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Lint found errors in the source code. Please check the reported errors"; \
 		echo "and fix them if necessary before submitting the code for review."; \

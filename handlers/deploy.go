@@ -8,15 +8,16 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	awsutil "github.com/ewilde/faas-ecs/aws"
-	"github.com/openfaas/faas/gateway/requests"
-	"github.com/ewilde/faas-ecs/types"
-	log "github.com/sirupsen/logrus"
-	"fmt"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
+	awsutil "github.com/ewilde/faas-fargate/aws"
+	"github.com/ewilde/faas-fargate/types"
+	"github.com/openfaas/faas/gateway/requests"
+	log "github.com/sirupsen/logrus"
 )
 
 // watchdogPort for the OpenFaaS function watchdog

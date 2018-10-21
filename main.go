@@ -7,17 +7,17 @@ import (
 
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
-	ecsutil "github.com/ewilde/faas-ecs/aws"
-	"github.com/ewilde/faas-ecs/handlers"
-	"github.com/ewilde/faas-ecs/types"
-	"github.com/ewilde/faas-ecs/version"
+	ecsutil "github.com/ewilde/faas-fargate/aws"
+	"github.com/ewilde/faas-fargate/handlers"
+	"github.com/ewilde/faas-fargate/types"
+	"github.com/ewilde/faas-fargate/version"
 	bootTypes "github.com/openfaas/faas-provider/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 func main() {
@@ -33,7 +33,7 @@ func main() {
 	osEnv := types.OsEnv{}
 	cfg := readConfig.Read(osEnv)
 
-	log.Infof("Faas-ecs version:%s. Last commit message: %s, commit SHA: %s'", version.BuildVersion(), version.GitCommitMessage, version.GitCommitSHA)
+	log.Infof("faas-fargate version:%s. Last commit message: %s, commit SHA: %s'", version.BuildVersion(), version.GitCommitMessage, version.GitCommitSHA)
 	log.Infof("HTTP Read Timeout: %s", cfg.ReadTimeout)
 	log.Infof("HTTP Write Timeout: %s", cfg.WriteTimeout)
 	log.Infof("Function Readiness Probe Enabled: %v", cfg.EnableFunctionReadinessProbe)
@@ -44,12 +44,11 @@ func main() {
 	discovery := servicediscovery.New(session, aws.NewConfig().WithLogLevel(awsLogLevel()))
 
 	deployConfig := &types.DeployHandlerConfig{
-		AssignPublicIP: cfg.AssignPublicIP,
-		SecurityGroupId: cfg.SecurityGroupId,
-		SubnetIDs: cfg.SubnetIDs,
-		VpcID: ecsutil.VpcFromSubnet(ec2Client, cfg.SubnetIDs),
+		AssignPublicIP:  cfg.AssignPublicIP,
+		SecurityGroupID: cfg.SecurityGroupID,
+		SubnetIDs:       cfg.SubnetIDs,
+		VpcID:           ecsutil.VpcFromSubnet(ec2Client, cfg.SubnetIDs),
 	}
-
 
 	bootstrapHandlers := bootTypes.FaaSHandlers{
 		FunctionProxy:  handlers.MakeProxy(functionNamespace, cfg.ReadTimeout, ecsClient, ec2Client),

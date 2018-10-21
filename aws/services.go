@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,11 +9,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	log "github.com/sirupsen/logrus"
-	"github.com/openfaas/faas/gateway/requests"
-	"github.com/ewilde/faas-ecs/types"
-	"github.com/ewilde/faas-ecs/system"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
+	"github.com/ewilde/faas-fargate/system"
+	"github.com/ewilde/faas-fargate/types"
+	"github.com/openfaas/faas/gateway/requests"
+	log "github.com/sirupsen/logrus"
 )
 
 const servicePrefix = "openfaas-"
@@ -27,6 +26,7 @@ func init() {
 	clusterID = system.GetEnv("cluster_name", "openfaas")
 }
 
+// FindECSServiceArn based on the serviceName finds a matching service, returning it's arn.
 func FindECSServiceArn(client *ecs.ECS, serviceName string) (*string, error) {
 	services, err := client.ListServices(&ecs.ListServicesInput{
 		Cluster: ClusterID(),
@@ -36,7 +36,7 @@ func FindECSServiceArn(client *ecs.ECS, serviceName string) (*string, error) {
 		return nil, err
 	}
 
-	var serviceArn *string = nil
+	var serviceArn *string
 	for _, item := range services.ServiceArns {
 		if strings.Contains(aws.StringValue(item), serviceName) {
 			serviceArn = item
@@ -46,6 +46,8 @@ func FindECSServiceArn(client *ecs.ECS, serviceName string) (*string, error) {
 	return serviceArn, nil
 }
 
+// UpdateOrCreateECSService either creates an new service or updates an existing one if matched based on the
+// service name in the request
 func UpdateOrCreateECSService(
 	ecsClient *ecs.ECS,
 	ec2Client *ec2.EC2,
@@ -93,7 +95,7 @@ func UpdateOrCreateECSService(
 			AwsvpcConfiguration: &ecs.AwsVpcConfiguration{
 				AssignPublicIp: aws.String(cfg.AssignPublicIP),
 				Subnets:        awsSubnet(ec2Client, cfg.SubnetIDs, cfg.VpcID),
-				SecurityGroups: []*string { aws.String(cfg.SecurityGroupId) },
+				SecurityGroups: []*string{aws.String(cfg.SecurityGroupID)},
 			},
 		},
 		ServiceRegistries: []*ecs.ServiceRegistry{
@@ -112,6 +114,7 @@ func UpdateOrCreateECSService(
 	return result.Service, nil
 }
 
+// UpdateECSServiceDesiredCount update the service desired count
 func UpdateECSServiceDesiredCount(
 	ecsClient *ecs.ECS,
 	serviceName string,
@@ -119,12 +122,12 @@ func UpdateECSServiceDesiredCount(
 
 	serviceArn, err := FindECSServiceArn(ecsClient, serviceName)
 	if err != nil {
-		log.Errorln(fmt.Sprintf("Could not find service with name %s.", serviceName), err)
+		log.Errorln(fmt.Sprintf("could not find service with name %s.", serviceName), err)
 		return nil, err
 	}
 
 	if serviceArn == nil {
-		return nil, errors.New(fmt.Sprintf("Could not find service %s", serviceName))
+		return nil, fmt.Errorf("could not find service %s", serviceName)
 	}
 
 	service, err := ecsClient.UpdateService(&ecs.UpdateServiceInput{
@@ -140,37 +143,42 @@ func UpdateECSServiceDesiredCount(
 	return service.Service, nil
 }
 
+// ClusterID returns the configured cluster ID
 func ClusterID() *string {
 	return aws.String(clusterID)
 }
 
+// IsFaasService returns true if the service is an OpenFaaS function
 func IsFaasService(arn *string) bool {
 	return strings.Contains(aws.StringValue(arn), servicePrefix)
 }
 
+// ServiceNameFromArn calculated the service name from the service arn
 func ServiceNameFromArn(arn *string) *string {
 	return aws.String(strings.Split(*arn, "/")[1])
 }
 
+// ServiceNameForDisplay returns the service name shown to the user
 func ServiceNameForDisplay(name *string) string {
 	return strings.TrimPrefix(*name, servicePrefix)
 }
 
+// ServiceNameFromFunctionName returns the aws faargate service name based on the OpenFaaS function name
 func ServiceNameFromFunctionName(functionName string) string {
 	return servicePrefix + functionName
 }
 
-func awsSubnet(client *ec2.EC2, subnetIds string, vpcId string) []*string {
+func awsSubnet(client *ec2.EC2, subnetIds string, vpcID string) []*string {
 
 	subnetsFunc.Do(func() {
 		if subnetIds == "" {
-			log.Debugf("Searching for subnets using vpc id %s", vpcId)
+			log.Debugf("Searching for subnets using vpc id %s", vpcID)
 			result, err := client.DescribeSubnets(&ec2.DescribeSubnetsInput{
 				Filters: []*ec2.Filter{
 					{
 						Name: aws.String("vpc-id"),
 						Values: []*string{
-							aws.String(vpcId),
+							aws.String(vpcID),
 						},
 					},
 				},
@@ -182,7 +190,7 @@ func awsSubnet(client *ec2.EC2, subnetIds string, vpcId string) []*string {
 			}
 		} else {
 			log.Debugf("Searching for subnets using list of ids %s", subnetIds)
-			subnetIds :=strings.Split(subnetIds, ",")
+			subnetIds := strings.Split(subnetIds, ",")
 			for _, item := range subnetIds {
 				subnets = append(subnets, aws.String(item))
 			}

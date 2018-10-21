@@ -10,9 +10,9 @@ import (
 
 const (
 	//OrchestrationIdentifier identifier string for provider orchestration
-	OrchestrationIdentifier = "ecs"
+	OrchestrationIdentifier = "fargate"
 	//ProviderName name of the provider
-	ProviderName = "faas-ecs"
+	ProviderName = "faas-fargate"
 )
 
 //MakeInfoHandler creates handler for /system/info endpoint
