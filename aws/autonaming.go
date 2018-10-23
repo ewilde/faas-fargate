@@ -17,6 +17,42 @@ const namespace = "openfaas.local"
 var once = &sync.Once{}
 var namespaceID *string
 
+func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) (error) {
+	namespaceID, err := ensureDNSNamespaceExists(discovery, vpcID)
+	if err != nil {
+		return fmt.Errorf("error ensuring dns namespace existing. %v", err)
+	}
+
+	listResults, err := discovery.ListServices(&servicediscovery.ListServicesInput{
+		Filters: []*servicediscovery.ServiceFilter{
+			{
+				Name: aws.String("NAMESPACE_ID"),
+				Values: []*string{
+					namespaceID,
+				},
+			},
+		},
+	})
+
+	serviceID := ""
+	for _, item := range listResults.Services {
+		if aws.StringValue(item.Name) == serviceName {
+			serviceID = aws.StringValue(item.Id)
+			break
+		}
+	}
+
+	if len(serviceID) > 0 {
+		_, err := discovery.DeleteService(&servicediscovery.DeleteServiceInput{
+			Id: aws.String(serviceID),
+		}); if err != nil {
+			return fmt.Errorf("error deleting service %s with id %s. %v", serviceName, serviceID, err)
+		}
+	}
+
+	return nil
+}
+
 func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) (string, error) {
 
 	namespaceID, err := ensureDNSNamespaceExists(discovery, vpcID)
