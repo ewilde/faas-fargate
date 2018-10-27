@@ -2,12 +2,14 @@ package aws
 
 import (
 	"sync"
+	"time"
 
 	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
+	"github.com/cenkalti/backoff"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,7 +19,7 @@ const namespace = "openfaas.local"
 var once = &sync.Once{}
 var namespaceID *string
 
-func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) (error) {
+func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) error {
 	namespaceID, err := ensureDNSNamespaceExists(discovery, vpcID)
 	if err != nil {
 		return fmt.Errorf("error ensuring dns namespace existing. %v", err)
@@ -42,12 +44,52 @@ func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, ser
 		}
 	}
 
-	if len(serviceID) > 0 {
+	if len(serviceID) == 0 {
+		return nil // nothing to do
+	}
+
+	log.Infof("Listing service instances for %s", serviceID)
+	instances, err := discovery.ListInstances(&servicediscovery.ListInstancesInput{
+		ServiceId: aws.String(serviceID),
+	})
+	if err != nil {
+		return fmt.Errorf("error listing service discovery instance for %s with id %s. %v",
+			serviceName, serviceID, err)
+	}
+
+	for _, v := range instances.Instances {
+		log.Infof("De-registering instance %s for service %s", aws.StringValue(v.Id), serviceID)
+
+		_, err = discovery.DeregisterInstance(&servicediscovery.DeregisterInstanceInput{
+			ServiceId:  aws.String(serviceID),
+			InstanceId: v.Id,
+		})
+
+		if err != nil {
+			return fmt.Errorf("error de-registering service discovery instance id %s, for service %s with id %s. %v",
+				aws.StringValue(v.Id), serviceName, serviceID, err)
+		}
+	}
+
+	eb := backoff.NewExponentialBackOff()
+	eb.MaxElapsedTime = time.Second * 30
+
+	err = backoff.Retry(func() error {
 		_, err := discovery.DeleteService(&servicediscovery.DeleteServiceInput{
 			Id: aws.String(serviceID),
-		}); if err != nil {
-			return fmt.Errorf("error deleting service %s with id %s. %v", serviceName, serviceID, err)
+		})
+
+		if err != nil {
+			log.Errorf("error deleting service discovery service %s with id %s. %v. don't worry we are going to back off and retry...", serviceName, serviceID, err)
+		} else {
+			log.Infof("yay we deleted service %s with id %s.", serviceName, serviceID)
 		}
+
+		return err
+	}, eb)
+
+	if err != nil {
+		return fmt.Errorf("error deleting service discovery service %s with id %s. %v", serviceName, serviceID, err)
 	}
 
 	return nil
