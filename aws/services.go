@@ -114,6 +114,53 @@ func UpdateOrCreateECSService(
 	return result.Service, nil
 }
 
+// DeleteECSService remove the service with the supplied name
+func DeleteECSService(
+	ecsClient *ecs.ECS,
+	discovery *servicediscovery.ServiceDiscovery,
+	serviceName string,
+	cfg *types.DeployHandlerConfig) error {
+	serviceArn, err := FindECSServiceArn(ecsClient, serviceName)
+	if err != nil {
+		return fmt.Errorf("could not find service matching %s. %v", serviceName, err)
+
+	}
+
+	if serviceArn == nil {
+		return fmt.Errorf("can not delete a function, no function found matching %s. %v", serviceName)
+	}
+
+	services, err := ecsClient.DescribeServices(&ecs.DescribeServicesInput{Cluster: ClusterID(), Services: []*string{serviceArn}})
+	if err != nil {
+		return fmt.Errorf("could not describe service %s. %v", aws.StringValue(serviceArn), err)
+	}
+
+	if *services.Services[0].DesiredCount > 0 {
+		ecsClient.UpdateService(&ecs.UpdateServiceInput{
+			Cluster:      ClusterID(),
+			Service:      serviceArn,
+			DesiredCount: aws.Int64(0)})
+	}
+
+	// do this async it takes quite a long time
+	go func() {
+		err = deleteServiceRegistration(discovery, serviceName, cfg.VpcID)
+		if err != nil {
+			log.Errorf("error deleting service discovery registration for %s. %v", serviceName, err)
+		}
+	}()
+
+	result, err := ecsClient.DeleteService(&ecs.DeleteServiceInput{Cluster: ClusterID(), Service: serviceArn})
+	if err != nil {
+		return fmt.Errorf("error deleting service %s arn: %s. %v", serviceName, aws.StringValue(serviceArn), err)
+	}
+
+	log.Infof("Successfully deleted service %s.", serviceName)
+
+	log.Debugf("deleting function %s result: %s", serviceName, result.String())
+	return nil
+}
+
 // UpdateECSServiceDesiredCount update the service desired count
 func UpdateECSServiceDesiredCount(
 	ecsClient *ecs.ECS,

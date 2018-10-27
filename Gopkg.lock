@@ -40,6 +40,12 @@
   version = "v1.13.47"
 
 [[projects]]
+  name = "github.com/cenkalti/backoff"
+  packages = ["."]
+  revision = "2ea60e5f094469f9e65adb9cd103795b73ae743e"
+  version = "v2.0.0"
+
+[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "6529cf7c58879c08d927016dde4477f18a0634cb"
@@ -103,6 +109,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "9b4f9f5ad5197c79fd623a3638e70d8b26cef344"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = [
     "unix",
@@ -113,6 +125,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c3a69e964def125a8887814f1c4ded60e09485649cd8a2e4c9aabf73e29b048b"
+  inputs-digest = "305c719ff5999acdf1a519608a415df6e60178bec3e6419a358d2883da3d5a86"
   solver-name = "gps-cdcl"
   solver-version = 1

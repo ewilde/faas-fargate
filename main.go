@@ -52,7 +52,7 @@ func main() {
 
 	bootstrapHandlers := bootTypes.FaaSHandlers{
 		FunctionProxy:  handlers.MakeProxy(functionNamespace, cfg.ReadTimeout, ecsClient, ec2Client),
-		DeleteHandler:  handlers.MakeDeleteHandler(functionNamespace, ecsClient),
+		DeleteHandler:  handlers.MakeDeleteHandler(functionNamespace, ecsClient, discovery, deployConfig),
 		DeployHandler:  handlers.MakeDeployHandler(functionNamespace, ecsClient, ec2Client, discovery, deployConfig),
 		FunctionReader: handlers.MakeFunctionReader(functionNamespace, ecsClient),
 		ReplicaReader:  handlers.MakeReplicaReader(functionNamespace, ecsClient),
@@ -66,6 +66,7 @@ func main() {
 		ReadTimeout:  time.Second * 8,
 		WriteTimeout: time.Second * 8,
 		TCPPort:      &cfg.Port,
+		EnableHealth: true,
 	}
 
 	log.Infof("Listening on port %d", cfg.Port)
