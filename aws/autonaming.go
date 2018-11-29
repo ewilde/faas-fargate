@@ -14,18 +14,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const namespace = "openfaas.local"
+const dnsNamespace = "openfaas.local"
 
 var once = &sync.Once{}
 var namespaceID *string
 
-func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) error {
-	namespaceID, err := ensureDNSNamespaceExists(discovery, vpcID)
+func deleteServiceRegistration(serviceName string, vpcID string) error {
+	namespaceID, err := ensureDNSNamespaceExists(vpcID)
 	if err != nil {
 		return fmt.Errorf("error ensuring dns namespace existing. %v", err)
 	}
 
-	listResults, err := discovery.ListServices(&servicediscovery.ListServicesInput{
+	listResults, err := discoveryClient.ListServices(&servicediscovery.ListServicesInput{
 		Filters: []*servicediscovery.ServiceFilter{
 			{
 				Name: aws.String("NAMESPACE_ID"),
@@ -49,7 +49,7 @@ func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, ser
 	}
 
 	log.Infof("Listing service instances for %s", serviceID)
-	instances, err := discovery.ListInstances(&servicediscovery.ListInstancesInput{
+	instances, err := discoveryClient.ListInstances(&servicediscovery.ListInstancesInput{
 		ServiceId: aws.String(serviceID),
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, ser
 	for _, v := range instances.Instances {
 		log.Infof("De-registering instance %s for service %s", aws.StringValue(v.Id), serviceID)
 
-		_, err = discovery.DeregisterInstance(&servicediscovery.DeregisterInstanceInput{
+		_, err = discoveryClient.DeregisterInstance(&servicediscovery.DeregisterInstanceInput{
 			ServiceId:  aws.String(serviceID),
 			InstanceId: v.Id,
 		})
@@ -75,7 +75,7 @@ func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, ser
 	eb.MaxElapsedTime = time.Second * 30
 
 	err = backoff.Retry(func() error {
-		_, err := discovery.DeleteService(&servicediscovery.DeleteServiceInput{
+		_, err := discoveryClient.DeleteService(&servicediscovery.DeleteServiceInput{
 			Id: aws.String(serviceID),
 		})
 
@@ -95,15 +95,15 @@ func deleteServiceRegistration(discovery *servicediscovery.ServiceDiscovery, ser
 	return nil
 }
 
-func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscovery, serviceName string, vpcID string) (string, error) {
+func ensureServiceRegistrationExists(serviceName string, vpcID string) (string, error) {
 
-	namespaceID, err := ensureDNSNamespaceExists(discovery, vpcID)
+	namespaceID, err := ensureDNSNamespaceExists(vpcID)
 	if err != nil {
 		log.Errorln("error ensuring dns namespace existing. ", err)
 		return "", err
 	}
 
-	listResults, err := discovery.ListServices(&servicediscovery.ListServicesInput{
+	listResults, err := discoveryClient.ListServices(&servicediscovery.ListServicesInput{
 		Filters: []*servicediscovery.ServiceFilter{
 			{
 				Name: aws.String("NAMESPACE_ID"),
@@ -129,7 +129,7 @@ func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscover
 
 	if serviceArn == "" {
 		requestID := uuid.NewV4()
-		createResult, err := discovery.CreateService(&servicediscovery.CreateServiceInput{
+		createResult, err := discoveryClient.CreateService(&servicediscovery.CreateServiceInput{
 			Name:             aws.String(serviceName),
 			CreatorRequestId: aws.String(requestID.String()),
 			Description:      aws.String(fmt.Sprintf("Openfaas auto-naming service for %s", serviceName)),
@@ -158,11 +158,11 @@ func ensureServiceRegistrationExists(discovery *servicediscovery.ServiceDiscover
 	return serviceArn, nil
 }
 
-func ensureDNSNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcID string) (id *string, err error) {
+func ensureDNSNamespaceExists(vpcID string) (id *string, err error) {
 	once.Do(func() {
 		var found bool
 
-		id, found, err = findNamespace(discovery)
+		id, found, err = findNamespace()
 		if err != nil {
 			log.Errorln("error finding private dns name. ", err)
 			return
@@ -170,8 +170,8 @@ func ensureDNSNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcI
 
 		if !found {
 			requestID := uuid.NewV4()
-			_, err = discovery.CreatePrivateDnsNamespace(&servicediscovery.CreatePrivateDnsNamespaceInput{
-				Name:             aws.String(namespace),
+			_, err = discoveryClient.CreatePrivateDnsNamespace(&servicediscovery.CreatePrivateDnsNamespaceInput{
+				Name:             aws.String(dnsNamespace),
 				CreatorRequestId: aws.String(requestID.String()),
 				Description:      aws.String("Openfaas private DNS namespace"),
 				Vpc:              aws.String(vpcID),
@@ -182,7 +182,7 @@ func ensureDNSNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcI
 				return
 			}
 
-			id, found, err = findNamespace(discovery)
+			id, found, err = findNamespace()
 			if err != nil {
 				log.Errorln("error finding private dns name. ", err)
 				return
@@ -200,9 +200,9 @@ func ensureDNSNamespaceExists(discovery *servicediscovery.ServiceDiscovery, vpcI
 	return namespaceID, err
 }
 
-func findNamespace(discovery *servicediscovery.ServiceDiscovery) (*string, bool, error) {
+func findNamespace() (*string, bool, error) {
 	var listResult *servicediscovery.ListNamespacesOutput
-	listResult, err := discovery.ListNamespaces(&servicediscovery.ListNamespacesInput{})
+	listResult, err := discoveryClient.ListNamespaces(&servicediscovery.ListNamespacesInput{})
 	if err != nil {
 		log.Errorln("error listing namespaces. ", err)
 		return nil, false, err
@@ -211,7 +211,7 @@ func findNamespace(discovery *servicediscovery.ServiceDiscovery) (*string, bool,
 	found := false
 	var id *string
 	for _, item := range listResult.Namespaces {
-		if aws.StringValue(item.Name) == namespace {
+		if aws.StringValue(item.Name) == dnsNamespace {
 			id = item.Id
 			found = true
 			break

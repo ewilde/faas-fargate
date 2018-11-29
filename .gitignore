@@ -1,3 +1,4 @@
 .idea
 examples/hellogoworld2/
 dist
+faas-fargate

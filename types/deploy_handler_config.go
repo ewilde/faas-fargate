@@ -6,4 +6,5 @@ type DeployHandlerConfig struct {
 	SecurityGroupID string
 	SubnetIDs       string
 	VpcID           string
+	Region          string
 }

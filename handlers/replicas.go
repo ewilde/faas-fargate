@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/gorilla/mux"
 	"github.com/openfaas/faas-netes/types"
 	"github.com/openfaas/faas/gateway/requests"
@@ -19,7 +18,7 @@ import (
 )
 
 // MakeReplicaUpdater updates desired count of replicas
-func MakeReplicaUpdater(functionNamespace string, client *ecs.ECS) http.HandlerFunc {
+func MakeReplicaUpdater() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Info("Update replicas")
 
@@ -37,7 +36,7 @@ func MakeReplicaUpdater(functionNamespace string, client *ecs.ECS) http.HandlerF
 			}
 		}
 
-		service, err := awsutil.UpdateECSServiceDesiredCount(client, request.ServiceName, int(request.Replicas))
+		service, err := awsutil.UpdateECSServiceDesiredCount(request.ServiceName, int(request.Replicas))
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
@@ -50,14 +49,14 @@ func MakeReplicaUpdater(functionNamespace string, client *ecs.ECS) http.HandlerF
 }
 
 // MakeReplicaReader reads the amount of replicas for a deployment
-func MakeReplicaReader(functionNamespace string, client *ecs.ECS) http.HandlerFunc {
+func MakeReplicaReader() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Info("Read replicas")
 
 		vars := mux.Vars(r)
 		functionName := vars["name"]
 
-		functions, err := getServiceList(functionNamespace, client)
+		functions, err := awsutil.GetServiceList()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return

@@ -11,21 +11,15 @@ import (
 	"strconv"
 	"time"
 
-	"errors"
-
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ecs"
-	awsutil "github.com/ewilde/faas-fargate/aws"
 	"github.com/gorilla/mux"
 	"github.com/openfaas/faas/gateway/requests"
 	log "github.com/sirupsen/logrus"
 )
 
 // MakeProxy creates a proxy for HTTP web requests which can be routed to a function.
-func MakeProxy(functionNamespace string, timeout time.Duration, ecsClient *ecs.ECS, ec2Client *ec2.EC2) http.HandlerFunc {
+func MakeProxy(timeout time.Duration) http.HandlerFunc {
 	proxyClient := http.Client{
 		Transport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
@@ -62,7 +56,7 @@ func MakeProxy(functionNamespace string, timeout time.Duration, ecsClient *ecs.E
 
 			forwardReq := requests.NewForwardRequest(r.Method, *r.URL)
 
-			hostName, err := lookupHostName(ecsClient, ec2Client, service)
+			hostName, err := lookupHostName(service)
 			if err != nil {
 				log.Errorln(fmt.Sprintf("Error looking up host name using service %s. ", service), err)
 				writeError(err, service, w)
@@ -111,60 +105,6 @@ func copyHeaders(destination *http.Header, source *http.Header) {
 	}
 }
 
-func lookupHostName(ecsClient *ecs.ECS, ec2Client *ec2.EC2, functionName string) (string, error) {
-	serviceName := awsutil.ServiceNameFromFunctionName(functionName)
-	serviceArn, err := awsutil.FindECSServiceArn(ecsClient, serviceName)
-	if err != nil {
-		return "", err
-	}
-
-	// TODO: cache this as it's expensive to lookup for every invoke
-	services, err := ecsClient.DescribeServices(&ecs.DescribeServicesInput{Cluster: awsutil.ClusterID(), Services: []*string{serviceArn}})
-	if err != nil {
-		return "", err
-	}
-
-	service := services.Services[0]
-	if len(service.ServiceRegistries) == 0 {
-		return hostNameFromENI(ecsClient, ec2Client, serviceName)
-	}
-
+func lookupHostName(functionName string) (string, error) {
 	return fmt.Sprintf("%s.openfaas.local", functionName), nil
-
-}
-
-func hostNameFromENI(ecsClient *ecs.ECS, ec2Client *ec2.EC2, serviceName string) (string, error) {
-	// TODO: cache this as it's expensive to lookup for every invoke
-
-	listTasks, err := ecsClient.ListTasks(
-		&ecs.ListTasksInput{
-			Cluster:     awsutil.ClusterID(),
-			ServiceName: aws.String(serviceName),
-		})
-	if err != nil {
-		return "", err
-	}
-
-	tasks, err := ecsClient.DescribeTasks(
-		&ecs.DescribeTasksInput{
-			Cluster: awsutil.ClusterID(),
-			Tasks:   listTasks.TaskArns,
-		})
-	if err != nil {
-		return "", err
-	}
-
-	details := tasks.Tasks[0].Attachments[0].Details
-	networkID, ok := awsutil.KeyValuePairGetValue("networkInterfaceId", details)
-	if !ok {
-		return "", errors.New("could not find a running task with an attached network interface")
-	}
-
-	network, err := ec2Client.DescribeNetworkInterfaces(
-		&ec2.DescribeNetworkInterfacesInput{NetworkInterfaceIds: []*string{networkID}})
-	if err != nil {
-		return "", err
-	}
-
-	return aws.StringValue(network.NetworkInterfaces[0].Association.PublicDnsName), nil
 }

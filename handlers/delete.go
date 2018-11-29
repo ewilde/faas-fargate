@@ -8,11 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/service/servicediscovery"
-
 	"github.com/ewilde/faas-fargate/types"
 
-	"github.com/aws/aws-sdk-go/service/ecs"
 	awsutil "github.com/ewilde/faas-fargate/aws"
 	"github.com/openfaas/faas/gateway/requests"
 	log "github.com/sirupsen/logrus"
@@ -20,13 +17,8 @@ import (
 
 // MakeDeleteHandler delete a function
 func MakeDeleteHandler(
-	functionNamespace string,
-	client *ecs.ECS,
-	discovery *servicediscovery.ServiceDiscovery,
 	config *types.DeployHandlerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("Delete service for namespace %s", functionNamespace)
-
 		defer r.Body.Close()
 
 		body, _ := ioutil.ReadAll(r.Body)
@@ -44,7 +36,7 @@ func MakeDeleteHandler(
 			w.WriteHeader(http.StatusBadRequest)
 		}
 
-		err = awsutil.DeleteECSService(client, discovery, request.FunctionName, config)
+		err = awsutil.DeleteECSService(request.FunctionName, config)
 		if err != nil {
 			log.Errorf("Can not delete function %s. %v", request.FunctionName, err)
 			w.WriteHeader(http.StatusBadRequest)

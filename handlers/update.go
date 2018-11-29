@@ -6,9 +6,6 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	awsutil "github.com/ewilde/faas-fargate/aws"
 	"github.com/ewilde/faas-fargate/types"
 	"github.com/openfaas/faas/gateway/requests"
@@ -17,10 +14,6 @@ import (
 
 // MakeUpdateHandler update specified function
 func MakeUpdateHandler(
-	functionNamespace string,
-	ecsClient *ecs.ECS,
-	ec2Client *ec2.EC2,
-	discovery *servicediscovery.ServiceDiscovery,
 	config *types.DeployHandlerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
@@ -35,14 +28,14 @@ func MakeUpdateHandler(
 			return
 		}
 
-		taskDefinition, err := awsutil.CreateTaskRevision(ecsClient, request)
+		taskDefinition, err := awsutil.CreateTaskRevision(request, config)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
 
-		service, err := awsutil.UpdateOrCreateECSService(ecsClient, ec2Client, discovery, taskDefinition.TaskDefinition, request, config)
+		service, err := awsutil.UpdateOrCreateECSService(taskDefinition.TaskDefinition, request, config)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(err.Error()))
