@@ -82,6 +82,7 @@ func (ReadConfig) Read(hasEnv HasEnv) BootstrapConfig {
 	cfg.Port = parseIntValue(hasEnv.Getenv("port"), defaultTCPPort)
 	cfg.SubnetIDs = parseString(hasEnv.Getenv("subnet_ids"), "")
 	cfg.SecurityGroupID = parseString(hasEnv.Getenv("security_group_id"), "")
+	cfg.DefaultAWSRegion = parseString(hasEnv.Getenv("AWS_DEFAULT_REGION"), "us-east-1")
 
 	return cfg
 }
@@ -96,4 +97,5 @@ type BootstrapConfig struct {
 	SubnetIDs                    string
 	SecurityGroupID              string
 	WriteTimeout                 time.Duration
+	DefaultAWSRegion             string
 }

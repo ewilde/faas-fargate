@@ -11,7 +11,7 @@ COPY . .
 
 RUN curl -sL https://github.com/alexellis/license-check/releases/download/0.2.2/license-check > /usr/bin/license-check \
     && chmod +x /usr/bin/license-check
-RUN license-check -path ./ --verbose=false "Edward Wilde" "OpenFaaS Project"
+RUN license-check -path ./ --verbose=false "Edward Wilde" "OpenFaaS Project" "Alex Ellis"
 RUN goimports -l -d $(find . -type f -name '*.go' -not -path "./vendor/*") \
     && VERSION=$(git describe --all --exact-match `git rev-parse HEAD` | grep tags | sed 's/tags\///') \
     && GIT_COMMIT_SHA=$(git rev-list -1 HEAD) \

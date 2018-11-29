@@ -11,10 +11,10 @@ import (
 
 // VpcFromSubnet calculates the vpc id based on the supplied subnet ids, or returns the default vpc id if subnets
 // are an empty string
-func VpcFromSubnet(client *ec2.EC2, subnets string) string {
+func VpcFromSubnet(subnets string) string {
 
 	if subnets == "" {
-		vpcResult, err := client.DescribeVpcs(&ec2.DescribeVpcsInput{})
+		vpcResult, err := ec2Client.DescribeVpcs(&ec2.DescribeVpcsInput{})
 		if err != nil {
 			log.Errorln("Error describing vpc. ", err)
 			return ""
@@ -32,7 +32,7 @@ func VpcFromSubnet(client *ec2.EC2, subnets string) string {
 	}
 
 	subnetIds := strings.Split(subnets, ",")
-	result, err := client.DescribeSubnets(&ec2.DescribeSubnetsInput{
+	result, err := ec2Client.DescribeSubnets(&ec2.DescribeSubnetsInput{
 		SubnetIds: []*string{aws.String(subnetIds[0])},
 	})
 

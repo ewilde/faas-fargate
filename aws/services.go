@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	"github.com/ewilde/faas-fargate/system"
 	"github.com/ewilde/faas-fargate/types"
 	"github.com/openfaas/faas/gateway/requests"
@@ -27,8 +26,8 @@ func init() {
 }
 
 // FindECSServiceArn based on the serviceName finds a matching service, returning it's arn.
-func FindECSServiceArn(client *ecs.ECS, serviceName string) (*string, error) {
-	services, err := client.ListServices(&ecs.ListServicesInput{
+func FindECSServiceArn(serviceName string) (*string, error) {
+	services, err := ecsClient.ListServices(&ecs.ListServicesInput{
 		Cluster: ClusterID(),
 	})
 
@@ -49,14 +48,11 @@ func FindECSServiceArn(client *ecs.ECS, serviceName string) (*string, error) {
 // UpdateOrCreateECSService either creates an new service or updates an existing one if matched based on the
 // service name in the request
 func UpdateOrCreateECSService(
-	ecsClient *ecs.ECS,
-	ec2Client *ec2.EC2,
-	discovery *servicediscovery.ServiceDiscovery,
 	taskDefinition *ecs.TaskDefinition,
 	request requests.CreateFunctionRequest,
 	cfg *types.DeployHandlerConfig) (*ecs.Service, error) {
 
-	serviceArn, err := FindECSServiceArn(ecsClient, request.Service)
+	serviceArn, err := FindECSServiceArn(request.Service)
 	if err != nil {
 		log.Errorln(fmt.Sprintf("Could not find service with name %s.", request.Service), err)
 		return nil, err
@@ -78,7 +74,7 @@ func UpdateOrCreateECSService(
 		return service.Service, err
 	}
 
-	registryArn, err := ensureServiceRegistrationExists(discovery, request.Service, cfg.VpcID)
+	registryArn, err := ensureServiceRegistrationExists(request.Service, cfg.VpcID)
 	if err != nil {
 		log.Errorln(fmt.Sprintf("Error creating registry for service %s. ", request.Service), err)
 		return nil, err
@@ -116,18 +112,15 @@ func UpdateOrCreateECSService(
 
 // DeleteECSService remove the service with the supplied name
 func DeleteECSService(
-	ecsClient *ecs.ECS,
-	discovery *servicediscovery.ServiceDiscovery,
 	serviceName string,
 	cfg *types.DeployHandlerConfig) error {
-	serviceArn, err := FindECSServiceArn(ecsClient, serviceName)
+	serviceArn, err := FindECSServiceArn(serviceName)
 	if err != nil {
 		return fmt.Errorf("could not find service matching %s. %v", serviceName, err)
-
 	}
 
 	if serviceArn == nil {
-		return fmt.Errorf("can not delete a function, no function found matching %s. %v", serviceName)
+		return fmt.Errorf("can not delete a function, no function found matching %s", serviceName)
 	}
 
 	services, err := ecsClient.DescribeServices(&ecs.DescribeServicesInput{Cluster: ClusterID(), Services: []*string{serviceArn}})
@@ -144,7 +137,7 @@ func DeleteECSService(
 
 	// do this async it takes quite a long time
 	go func() {
-		err = deleteServiceRegistration(discovery, serviceName, cfg.VpcID)
+		err = deleteServiceRegistration(serviceName, cfg.VpcID)
 		if err != nil {
 			log.Errorf("error deleting service discovery registration for %s. %v", serviceName, err)
 		}
@@ -157,17 +150,21 @@ func DeleteECSService(
 
 	log.Infof("Successfully deleted service %s.", serviceName)
 
+	err = DeleteTaskRevision(serviceName)
+	if err != nil {
+		return fmt.Errorf("error deleting task revision for service %s arn: %s. %v", serviceName, aws.StringValue(serviceArn), err)
+	}
+
 	log.Debugf("deleting function %s result: %s", serviceName, result.String())
 	return nil
 }
 
 // UpdateECSServiceDesiredCount update the service desired count
 func UpdateECSServiceDesiredCount(
-	ecsClient *ecs.ECS,
 	serviceName string,
 	desiredCount int) (*ecs.Service, error) {
 
-	serviceArn, err := FindECSServiceArn(ecsClient, serviceName)
+	serviceArn, err := FindECSServiceArn(serviceName)
 	if err != nil {
 		log.Errorln(fmt.Sprintf("could not find service with name %s.", serviceName), err)
 		return nil, err
@@ -193,6 +190,64 @@ func UpdateECSServiceDesiredCount(
 // ClusterID returns the configured cluster ID
 func ClusterID() *string {
 	return aws.String(clusterID)
+}
+
+// GetServiceList returns the list of OpenFaas functions running
+func GetServiceList() ([]requests.Function, error) {
+	var functions []requests.Function
+
+	services, err := getServices()
+	if err != nil {
+		return nil, err
+	}
+
+	var serviceNames []*string
+	for _, item := range services {
+		if !IsFaasService(item) {
+			continue
+		}
+
+		serviceNames = append(serviceNames, ServiceNameFromArn(item))
+	}
+
+	if len(serviceNames) == 0 {
+		return functions, nil
+	}
+
+	for len(serviceNames) > 0 {
+		describe := serviceNames
+		if len(serviceNames) > 10 {
+			describe = serviceNames[0:10]
+			serviceNames = serviceNames[10:]
+		} else {
+			serviceNames = serviceNames[len(serviceNames):]
+		}
+
+		details, err := ecsClient.DescribeServices(&ecs.DescribeServicesInput{Services: describe, Cluster: ClusterID()})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range details.Services {
+			task, err := ecsClient.DescribeTaskDefinition(&ecs.DescribeTaskDefinitionInput{TaskDefinition: item.TaskDefinition})
+			if err != nil {
+				return nil, err
+			}
+
+			function := requests.Function{
+				Name:              ServiceNameForDisplay(item.ServiceName),
+				Replicas:          uint64(*item.RunningCount),
+				Image:             aws.StringValue(task.TaskDefinition.ContainerDefinitions[0].Image),
+				AvailableReplicas: uint64(*item.DesiredCount), // TODO find out what this property relates to
+				InvocationCount:   0,
+				Labels:            nil,
+			}
+
+			functions = append(functions, function)
+		}
+	}
+
+	return functions, nil
 }
 
 // IsFaasService returns true if the service is an OpenFaaS function
@@ -245,6 +300,30 @@ func awsSubnet(client *ec2.EC2, subnetIds string, vpcID string) []*string {
 	})
 
 	return subnets
+}
+
+func getServices() ([]*string, error) {
+	var result []*string
+	var next *string
+
+	for {
+		services, err := ecsClient.ListServices(
+			&ecs.ListServicesInput{
+				Cluster:   ClusterID(),
+				NextToken: next,
+			})
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, services.ServiceArns...)
+		next = services.NextToken
+		if next == nil {
+			break
+		}
+	}
+
+	return result, nil
 }
 
 func getMinReplicaCount(labels *map[string]string) *int64 {

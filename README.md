@@ -37,6 +37,7 @@ All configuration is managed using environment variables
 | `read_timeout`                    | HTTP timeout for reading the payload from the client caller (in seconds).                      | `8`                      |   no     |
 | `image_pull_policy`               | Image pull policy for deployed functions (`Always`, `IfNotPresent`, `Never`)                   | `Always`                 |   no     |
 | `LOG_LEVEL`                       | Logging level either: `trace, debug, info, warn, error, fatal, panic`.                         | `info`                   |   no     |
+| `AWS_DEFAULT_REGION`              | AWS region faas-fargate is running in.                                                         | `us-east-1`              |   no     |
 
 ## Overview
 ![diagram of the openfaas on fargate architecture](./docs/architecture.png "Openfaas for fargate overview")

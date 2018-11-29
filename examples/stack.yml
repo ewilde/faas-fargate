@@ -3,7 +3,10 @@ provider:
   gateway: http://127.0.0.1:8080
 
 functions:
-  hellogoworld2:
+  hellogoworld:
     lang: go
-    handler: ./hellogoworld2
-    image: ewilde/hellogoworld2
+    handler: ./hellogoworld
+    image: ewilde/hellogoworld
+    secrets:
+    - db-password
+

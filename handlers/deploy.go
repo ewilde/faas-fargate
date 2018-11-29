@@ -11,9 +11,6 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ecs"
-	"github.com/aws/aws-sdk-go/service/servicediscovery"
 	awsutil "github.com/ewilde/faas-fargate/aws"
 	"github.com/ewilde/faas-fargate/types"
 	"github.com/openfaas/faas/gateway/requests"
@@ -28,15 +25,9 @@ const initialReplicasCount = 1
 
 // MakeDeployHandler creates a handler to create new functions in the cluster
 func MakeDeployHandler(
-	functionNamespace string,
-	ecsClient *ecs.ECS,
-	ec2Client *ec2.EC2,
-	discovery *servicediscovery.ServiceDiscovery,
 	config *types.DeployHandlerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
-
-		log.Infof("Deployment request for namespace %s", functionNamespace)
 
 		body, _ := ioutil.ReadAll(r.Body)
 
@@ -50,7 +41,7 @@ func MakeDeployHandler(
 
 		log.Infof("Deployment request for function %s", request.Service)
 
-		taskDefinition, err := awsutil.CreateTaskRevision(ecsClient, request)
+		taskDefinition, err := awsutil.CreateTaskRevision(request, config)
 		if err != nil {
 			log.Errorln(fmt.Sprintf("Error creating task revision for %s", request.Service), err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -60,7 +51,7 @@ func MakeDeployHandler(
 
 		log.Infof("Created task definition for %s", request.Service)
 
-		service, err := awsutil.UpdateOrCreateECSService(ecsClient, ec2Client, discovery, taskDefinition.TaskDefinition, request, config)
+		service, err := awsutil.UpdateOrCreateECSService(taskDefinition.TaskDefinition, request, config)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
