@@ -46,7 +46,7 @@ All configuration is managed using environment variables
 We welcome contributions! Please refer to our [contributing guidelines](CONTRIBUTING.md) for further information.
 
 ## Releasing
-Releases are made using [goreleaser](https://github.com/goreleaser/gorelease) and use [semver](https://semver.org/)
+Releases are made using [goreleaser](https://github.com/goreleaser/goreleaser) and use [semver](https://semver.org/)
 
 ### Example release
 #### Step 1 tag the release
